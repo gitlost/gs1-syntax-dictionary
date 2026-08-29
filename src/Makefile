@@ -204,6 +204,17 @@ $(BUILD_DIR)/lib$(NAME).so.$(VERSION): $(OBJS)
 
 
 #
+#  pkg-config metadata, regenerated so that it always reflects PREFIX,
+#  LIBDIR and the version currently being built
+#
+$(BUILD_DIR)/$(NAME).pc: $(NAME).pc.in FORCE | $(BUILD_DIR)/
+	sed -e 's|@PREFIX@|$(PREFIX)|g' \
+	    -e 's|@LIBDIR@|$(LIBDIR)|g' \
+	    -e 's|@VERSION@|$(VERSION)|g' \
+	    $< > $@
+
+
+#
 #  Static library
 #
 $(BUILD_DIR)/lib$(NAME).a: $(OBJS)
@@ -295,13 +306,18 @@ install-headers:
 	install -d $(DESTDIR)$(PREFIX)/include
 	install -m 0644 $(NAME).h $(DESTDIR)$(PREFIX)/include
 
+.PHONY: install-pkgconfig
+install-pkgconfig: $(BUILD_DIR)/$(NAME).pc
+	install -d $(DESTDIR)$(LIBDIR)/pkgconfig
+	install -m 0644 $(BUILD_DIR)/$(NAME).pc $(DESTDIR)$(LIBDIR)/pkgconfig
+
 .PHONY: install-static
-install-static: libstatic install-headers
+install-static: libstatic install-headers install-pkgconfig
 	install -d $(DESTDIR)$(LIBDIR)
 	install -m 0644 $(BUILD_DIR)/lib$(NAME).a $(DESTDIR)$(LIBDIR)
 
 .PHONY: install-shared
-install-shared: libshared install-headers
+install-shared: libshared install-headers install-pkgconfig
 	install -d $(DESTDIR)$(LIBDIR)
 	install -m 0644 $(BUILD_DIR)/lib$(NAME).so.$(VERSION) $(DESTDIR)$(LIBDIR)
 	cd $(DESTDIR)$(LIBDIR) && ln -sf lib$(NAME).so.$(VERSION) lib$(NAME).so
@@ -315,6 +331,7 @@ uninstall:
 	$(RM) $(DESTDIR)$(LIBDIR)/lib$(NAME).so.$(MAJOR)
 	$(RM) $(DESTDIR)$(LIBDIR)/lib$(NAME).so
 	$(RM) $(DESTDIR)$(LIBDIR)/lib$(NAME).a
+	$(RM) $(DESTDIR)$(LIBDIR)/pkgconfig/$(NAME).pc
 	-$(LDCONFIG)
 
 .PHONY: docs
