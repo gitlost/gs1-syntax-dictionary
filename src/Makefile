@@ -123,6 +123,15 @@ LIB_SHARED = $(BUILD_DIR)/lib$(NAME).so.$(VERSION) $(BUILD_DIR)/lib$(NAME).so $(
 PREFIX = /usr/local
 LIBDIR = $(PREFIX)/lib
 
+# ldconfig refreshes the shared library cache of the running system, which is
+# meaningless for a staged install and unavailable other than on Linux
+LDCONFIG = :
+ifeq ($(shell uname -s),Linux)
+ifeq ($(DESTDIR),)
+LDCONFIG = ldconfig
+endif
+endif
+
 TEST_SRC = $(NAME)-test.c
 TEST_OBJ = $(BUILD_DIR)/$(TEST_SRC:.c=.o)
 
@@ -297,16 +306,16 @@ install-shared: libshared install-headers
 	install -m 0644 $(BUILD_DIR)/lib$(NAME).so.$(VERSION) $(DESTDIR)$(LIBDIR)
 	cd $(DESTDIR)$(LIBDIR) && ln -sf lib$(NAME).so.$(VERSION) lib$(NAME).so
 	cd $(DESTDIR)$(LIBDIR) && ln -sf lib$(NAME).so.$(VERSION) lib$(NAME).so.$(MAJOR)
-	-ldconfig
+	-$(LDCONFIG)
 
 .PHONY: uninstall
 uninstall:
 	$(RM) $(DESTDIR)$(PREFIX)/include/$(NAME).h
-	$(RM) $(DESTDIR)$(PREFIX)/lib/lib$(NAME).so.$(VERSION)
-	$(RM) $(DESTDIR)$(PREFIX)/lib/lib$(NAME).so.$(MAJOR)
-	$(RM) $(DESTDIR)$(PREFIX)/lib/lib$(NAME).so
-	$(RM) $(DESTDIR)$(PREFIX)/lib/lib$(NAME).a
-	-ldconfig
+	$(RM) $(DESTDIR)$(LIBDIR)/lib$(NAME).so.$(VERSION)
+	$(RM) $(DESTDIR)$(LIBDIR)/lib$(NAME).so.$(MAJOR)
+	$(RM) $(DESTDIR)$(LIBDIR)/lib$(NAME).so
+	$(RM) $(DESTDIR)$(LIBDIR)/lib$(NAME).a
+	-$(LDCONFIG)
 
 .PHONY: docs
 docs:
