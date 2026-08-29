@@ -110,6 +110,24 @@ jobs:
           make -C src -j "$(nproc)" MSAN=yes \
             SLOW_TESTS=yes test
 
+  ci-fuzzer:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Fuzzer CI
+        run: |
+
+          # For llvm-symbolizer and lld
+          sudo apt-get -y --no-install-recommends install llvm lld
+
+          make -C src -j "$(nproc)" fuzzer
+
   ci-msvc:
 
     runs-on: windows-latest
