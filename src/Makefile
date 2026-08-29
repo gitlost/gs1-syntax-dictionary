@@ -155,10 +155,24 @@ libshared: $(LIB_SHARED)
 .PHONY: libstatic
 libstatic: $(LIB_STATIC)
 
+#
+#  Objects are invalidated whenever the toolchain or the compiler flags
+#  change, since goals such as SANITIZE=yes share a build directory with
+#  plain builds yet produce objects that cannot be linked together
+#
+BUILD_FLAGS = $(CC) $(CFLAGS)
+BUILD_FLAGS_STAMP = $(BUILD_DIR)/.build-flags
+
+.PHONY: FORCE
+FORCE:
+
+$(BUILD_FLAGS_STAMP): FORCE | $(BUILD_DIR)/
+	@echo '$(BUILD_FLAGS)' | cmp -s - $@ || echo '$(BUILD_FLAGS)' > $@
+
 $(BUILD_DIR)/:
 	mkdir -p $@
 
-$(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)/
+$(BUILD_DIR)/%.o: %.c $(BUILD_FLAGS_STAMP) | $(BUILD_DIR)/
 	$(CC) $(CFLAGS) -c $< -o $@
 
 #
@@ -197,7 +211,7 @@ define gen-fuzzer-target
 $$(FUZZER_CORPUS_PREFIX)$1/:
 	mkdir -p $$(FUZZER_CORPUS_PREFIX)$1
 
-$$(BUILD_DIR)/$$(FUZZER_PREFIX)$1.o : $$(FUZZER_LINTERS_SRC)
+$$(BUILD_DIR)/$$(FUZZER_PREFIX)$1.o : $$(FUZZER_LINTERS_SRC) $$(BUILD_FLAGS_STAMP)
 	$$(CC) $$(CFLAGS) -DLINTER=gs1_$1 -c $$< -o $$@
 
 $$(BUILD_DIR)/$$(FUZZER_PREFIX)$1: $$(OBJS) $$(BUILD_DIR)/$$(FUZZER_PREFIX)$1.o
